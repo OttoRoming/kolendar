@@ -63,7 +63,7 @@ func (s *Server) createUser(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 		Secure:   true,
 		SameSite: http.SameSiteStrictMode,
-		Expires:  session.ExpiresAt.Time,
+		Expires:  session.ExpiresAt.Time.UTC(),
 	})
 
 	s.jsonResponse(w, http.StatusCreated, &UserResponse{
@@ -107,7 +107,7 @@ func (s *Server) loginUser(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 		Secure:   true,
 		SameSite: http.SameSiteStrictMode,
-		Expires:  session.ExpiresAt.Time,
+		Expires:  session.ExpiresAt.Time.UTC(),
 	})
 
 	s.jsonResponse(w, http.StatusOK, &UserResponse{
