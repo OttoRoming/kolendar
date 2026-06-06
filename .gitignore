@@ -1,2 +1,3 @@
-internal/repository
+db/
+tmp/
 .env
