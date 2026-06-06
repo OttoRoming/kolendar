@@ -31,22 +31,52 @@ INSERT INTO calendars (
 -- name: GetCalendarsByUserID :many
 SELECT * FROM calendars WHERE user_id = $1;
 
--- name: GetCalendarByID :one
-SELECT * FROM calendars WHERE id = $1;
+-- name: DeleteCalendarByIDAndUserID :execrows
+DELETE FROM calendars WHERE id = $1 AND user_id = $2;
 
--- name: DeleteCalendarByID :exec
-DELETE FROM calendars WHERE id = $1;
+-- name: UpdateCalendarByIDAndUserID :one
+UPDATE calendars SET name = $3, color = $4 WHERE id = $1 AND user_id = $2 RETURNING *;
 
--- name: UpdateCalendarByID :one
-UPDATE calendars SET name = $2, color = $3 WHERE id = $1 RETURNING *;
+-- name: GetEventsByCalendarIDAndUserID :many
+SELECT events.* FROM events
+INNER JOIN calendars ON events.calendar_id = calendars.id
+WHERE calendars.user_id = $2 
+  AND events.calendar_id = $1;
 
--- name: GetEventsByCalendarID :many
-SELECT * FROM events WHERE calendar_id = $1;
-
--- name: CreateEvent :one
-INSERT INTO events (
+-- name: CreateEventSecure :one
+INSERT INTO events(
     calendar_id, title, description, all_day, start_time, end_time, location
-) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
-) RETURNING *;
+) SELECT $1, $2, $3, $4, $5, $6, $7
+FROM calendars
+WHERE calendars.id = $1 AND calendars.user_id = $8
+RETURNING *;
+
+-- name: DeleteEventByIDAndUserID :execrows
+DELETE FROM events
+USING calendars
+WHERE events.id = $1 
+  AND events.calendar_id = calendars.id 
+  AND calendars.user_id = $2;
+
+-- name: UpdateEventByIDAndUserID :one
+UPDATE events
+SET 
+    calendar_id = $1,
+    title = $2,
+    description = $3,
+    all_day = $4,
+    start_time = $5,
+    end_time = $6,
+    location = $7
+FROM
+    calendars AS old_calendar,
+    calendars AS new_calendar
+WHERE events.id = $8
+  -- 1. make sure the user owns the OLD calendar that the event is currently in
+  AND events.calendar_id = old_calendar.id
+  AND old_calendar.user_id = $9
+  -- 2. make sure the user owns the NEW calendar that the event will be moved to
+  AND new_calendar.id = $1
+  AND new_calendar.user_id = $9
+RETURNING events.*;
 

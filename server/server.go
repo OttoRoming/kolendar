@@ -19,6 +19,10 @@ type Server struct {
 	slog    *slog.Logger
 }
 
+type DeleteResponse struct {
+	RowsAffected int64 `json:"rows_affected"`
+}
+
 func NewServer(schema string) (*Server, error) {
 	ctx := context.Background()
 
@@ -121,6 +125,10 @@ func (s *Server) Run() error {
 	router.HandleFunc("DELETE /calendars/{id}/", s.createCalendar)
 	router.HandleFunc("UPDATE /calendars/{id}/", s.updateCalendar)
 	router.HandleFunc("GET /calendars/{id}/events/", s.getCalendarEvents)
+
+	router.HandleFunc("POST /events/", s.createEvent)
+	router.HandleFunc("DELETE /events/{id}/", s.deleteEvent)
+	router.HandleFunc("UPDATE /events/{id}/", s.updateEvent)
 
 	err := http.ListenAndServe(":8000", s.slogMiddleware(router))
 	if err != nil {

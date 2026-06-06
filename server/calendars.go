@@ -27,6 +27,7 @@ func (s *Server) getCalendars(w http.ResponseWriter, r *http.Request) {
 	user, err := s.authenticateRequest(r)
 	if err != nil {
 		s.jsonError(w, http.StatusUnauthorized, "Unauthorized")
+		return
 	}
 
 	calendars, err := s.queries.GetCalendarsByUserID(ctx, user.ID)
@@ -44,6 +45,7 @@ func (s *Server) createCalendar(w http.ResponseWriter, r *http.Request) {
 	user, err := s.authenticateRequest(r)
 	if err != nil {
 		s.jsonError(w, http.StatusUnauthorized, "Unauthorized")
+		return
 	}
 
 	payload := &CalendarRequest{}
@@ -86,24 +88,17 @@ func (s *Server) deleteCalendar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	calendar, err := s.queries.GetCalendarByID(ctx, calendarID)
-	if err != nil {
-		s.jsonError(w, http.StatusNotFound, "Calendar not found")
-		return
-	}
-
-	if calendar.UserID != user.ID {
-		s.jsonError(w, http.StatusForbidden, "Forbidden")
-		return
-	}
-
-	err = s.queries.DeleteCalendarByID(ctx, calendarID)
+	rowsAffected, err := s.queries.DeleteCalendarByIDAndUserID(ctx, db.DeleteCalendarByIDAndUserIDParams{
+		ID:     calendarID,
+		UserID: user.ID,
+	})
 	if err != nil {
 		s.jsonError(w, http.StatusInternalServerError, "Failed to delete calendar")
-		return
 	}
 
-	s.jsonResponse(w, http.StatusNoContent, nil)
+	s.jsonResponse(w, http.StatusOK, DeleteResponse{
+		RowsAffected: rowsAffected,
+	})
 }
 
 func (s *Server) updateCalendar(w http.ResponseWriter, r *http.Request) {
@@ -112,22 +107,12 @@ func (s *Server) updateCalendar(w http.ResponseWriter, r *http.Request) {
 	user, err := s.authenticateRequest(r)
 	if err != nil {
 		s.jsonError(w, http.StatusUnauthorized, "Unauthorized")
+		return
 	}
 
 	calendarID, err := s.pathValueUUID(r, "id")
 	if err != nil {
 		s.jsonError(w, http.StatusBadRequest, "Invalid calendar ID")
-		return
-	}
-
-	calendar, err := s.queries.GetCalendarByID(ctx, calendarID)
-	if err != nil {
-		s.jsonError(w, http.StatusNotFound, "Calendar not found")
-		return
-	}
-
-	if calendar.UserID != user.ID {
-		s.jsonError(w, http.StatusForbidden, "Forbidden")
 		return
 	}
 
@@ -144,11 +129,13 @@ func (s *Server) updateCalendar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updatedCalendar, err := s.queries.UpdateCalendarByID(ctx, db.UpdateCalendarByIDParams{
-		ID:    calendarID,
-		Name:  payload.Name,
-		Color: payload.Color,
+	updatedCalendar, err := s.queries.UpdateCalendarByIDAndUserID(ctx, db.UpdateCalendarByIDAndUserIDParams{
+		ID:     calendarID,
+		UserID: user.ID,
+		Name:   payload.Name,
+		Color:  payload.Color,
 	})
+
 	if err != nil {
 		s.jsonError(w, http.StatusInternalServerError, "Failed to update calendar")
 		return
@@ -163,6 +150,7 @@ func (s *Server) getCalendarEvents(w http.ResponseWriter, r *http.Request) {
 	user, err := s.authenticateRequest(r)
 	if err != nil {
 		s.jsonError(w, http.StatusUnauthorized, "Unauthorized")
+		return
 	}
 
 	calendarID, err := s.pathValueUUID(r, "id")
@@ -171,18 +159,10 @@ func (s *Server) getCalendarEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	calendar, err := s.queries.GetCalendarByID(ctx, calendarID)
-	if err != nil {
-		s.jsonError(w, http.StatusNotFound, "Calendar not found")
-		return
-	}
-
-	if calendar.UserID != user.ID {
-		s.jsonError(w, http.StatusForbidden, "Forbidden")
-		return
-	}
-
-	events, err := s.queries.GetEventsByCalendarID(ctx, calendarID)
+	events, err := s.queries.GetEventsByCalendarIDAndUserID(ctx, db.GetEventsByCalendarIDAndUserIDParams{
+		CalendarID: calendarID,
+		UserID:     user.ID,
+	})
 	if err != nil {
 		s.jsonError(w, http.StatusInternalServerError, "Failed to retrieve events")
 		return
