@@ -9,6 +9,8 @@ import (
 	"os"
 
 	"github.com/OttoRoming/kolendar/db"
+	"github.com/OttoRoming/kolendar/templates"
+	"github.com/a-h/templ"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -25,6 +27,8 @@ type DeleteResponse struct {
 
 func NewServer(schema string) (*Server, error) {
 	ctx := context.Background()
+
+	slog := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	connStr := "user=user password=password host=127.0.0.1 port=65432 dbname=app sslmode=disable"
 	pool, err := pgxpool.New(ctx, connStr)
@@ -43,7 +47,7 @@ func NewServer(schema string) (*Server, error) {
 
 	queries := db.New(pool)
 
-	slog := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	slog.Info("Database connection established")
 
 	return &Server{
 		pool:    pool,
@@ -72,23 +76,20 @@ func (s *Server) jsonError(w http.ResponseWriter, status int, message string) {
 	})
 }
 
-func (s *Server) authenticateRequest(r *http.Request) (*db.User, error) {
+func (s *Server) authenticateRequest(r *http.Request) (db.User, error) {
+	ctx := r.Context()
+	var user db.User
+
 	cookie, err := r.Cookie("token")
 	if err != nil {
-		return nil, err
+		return user, err
 	}
-
-	session, err := s.queries.GetSessionByToken(r.Context(), cookie.Value)
+	user, err = s.queries.GetUserBySessionToken(ctx, cookie.Value)
 	if err != nil {
-		return nil, err
+		return user, err
 	}
 
-	user, err := s.queries.GetUserByID(r.Context(), session.UserID)
-	if err != nil {
-		return nil, err
-	}
-
-	return &user, nil
+	return user, nil
 }
 
 func (s *Server) pathValueUUID(r *http.Request, key string) (pgtype.UUID, error) {
@@ -117,20 +118,23 @@ func (s *Server) slogMiddleware(next http.Handler) http.Handler {
 func (s *Server) Run() error {
 	router := http.NewServeMux()
 
-	router.HandleFunc("POST /users/", s.createUser)
-	router.HandleFunc("POST /users/login", s.loginUser)
+	router.Handle("/", templ.Handler(templates.Login()))
 
-	router.HandleFunc("GET /calendars/", s.getCalendars)
-	router.HandleFunc("POST /calendars/", s.createCalendar)
-	router.HandleFunc("DELETE /calendars/{id}/", s.createCalendar)
-	router.HandleFunc("UPDATE /calendars/{id}/", s.updateCalendar)
-	router.HandleFunc("GET /calendars/{id}/events/", s.getCalendarEvents)
+	router.HandleFunc("POST   /api/users/", s.createUser)
+	router.HandleFunc("POST   /api/users/login", s.loginUser)
 
-	router.HandleFunc("POST /events/", s.createEvent)
-	router.HandleFunc("DELETE /events/{id}/", s.deleteEvent)
-	router.HandleFunc("UPDATE /events/{id}/", s.updateEvent)
+	router.HandleFunc("POST   /api/libraries/", s.createLibrary)
+	router.HandleFunc("DELETE /api/libraries/{id}/", s.deleteLibrary)
+	router.HandleFunc("UPDATE /api/libraries/{id}/", s.updateLibrary)
+	router.HandleFunc("GET    /api/libraries/", s.getLibraries)
 
-	err := http.ListenAndServe(":8000", s.slogMiddleware(router))
+	address := os.Getenv("ADDRESS")
+	if address == "" {
+		address = "localhost:8080"
+	}
+
+	s.slog.Info("Starting server", "address", address)
+	err := http.ListenAndServe(address, s.slogMiddleware(router))
 	if err != nil {
 		return err
 	}

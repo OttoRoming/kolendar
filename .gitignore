@@ -2,3 +2,4 @@ db/
 tmp/
 bin/
 .env
+templates/*_templ.go

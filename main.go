@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 
@@ -21,8 +20,6 @@ func main() {
 		log.Fatal("failed to start server", "error", err)
 		os.Exit(1)
 	}
-
-	fmt.Println("Starting server")
 
 	if err := server.Run(); err != nil {
 		log.Fatal("server error", "error", err)

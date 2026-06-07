@@ -28,26 +28,26 @@ type UserResponse struct {
 func (s *Server) createUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	payload := &UserRequest{}
-	err := json.NewDecoder(r.Body).Decode(payload)
+	req := &UserRequest{}
+	err := json.NewDecoder(r.Body).Decode(req)
 	if err != nil {
 		s.jsonError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
-	if len(payload.Password) > MaxPasswordLength {
+	if len(req.Password) > MaxPasswordLength {
 		s.jsonError(w, http.StatusBadRequest, fmt.Sprintf("password is too long, max length is %d", MaxPasswordLength))
 		return
 	}
 
-	hashedPassword, err := argon2id.CreateHash(payload.Password, argon2id.DefaultParams)
+	hashedPassword, err := argon2id.CreateHash(req.Password, argon2id.DefaultParams)
 	if err != nil {
 		s.jsonError(w, http.StatusInternalServerError, "failed to hash password")
 		return
 	}
 
 	user, err := s.queries.CreateUser(ctx, db.CreateUserParams{
-		Username: payload.Username,
+		Username: req.Username,
 		Password: hashedPassword,
 	})
 	if err != nil {
@@ -76,20 +76,20 @@ func (s *Server) createUser(w http.ResponseWriter, r *http.Request) {
 func (s *Server) loginUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	payload := &UserRequest{}
-	err := json.NewDecoder(r.Body).Decode(payload)
+	req := &UserRequest{}
+	err := json.NewDecoder(r.Body).Decode(req)
 	if err != nil {
 		s.jsonError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
-	user, err := s.queries.GetUserByUsername(ctx, payload.Username)
+	user, err := s.queries.GetUserByUsername(ctx, req.Username)
 	if err != nil {
 		s.jsonError(w, http.StatusUnauthorized, "invalid username or password")
 		return
 	}
 
-	match, err := argon2id.ComparePasswordAndHash(payload.Password, user.Password)
+	match, err := argon2id.ComparePasswordAndHash(req.Password, user.Password)
 	if err != nil || !match {
 		s.jsonError(w, http.StatusUnauthorized, "invalid username or password")
 		return
