@@ -31,7 +31,8 @@ CREATE TABLE events (
     title TEXT NOT NULL,
     description TEXT NOT NULL,
     all_day BOOLEAN NOT NULL,
-    start_time TIMESTAMPTZ,
-    end_time TIMESTAMPTZ,
+    event_date DATE NOT NULL,
+    start_at TIMESTAMPTZ NOT NULL,
+    end_at TIMESTAMPTZ NOT NULL,
     location TEXT NOT NULL
 );
