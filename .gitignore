@@ -1,5 +1,6 @@
 db/
 tmp/
 bin/
+static/
 .env
 templates/*_templ.go

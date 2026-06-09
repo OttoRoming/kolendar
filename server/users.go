@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"fmt"
+
 	"github.com/OttoRoming/kolendar/db"
 	"github.com/alexedwards/argon2id"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -25,6 +26,31 @@ type UserResponse struct {
 	Token    string      `json:"token"`
 }
 
+func validateUsername(username string) error {
+	if len(username) < 3 || len(username) > 32 {
+		return fmt.Errorf("username must be between 3 and 32 characters")
+	}
+
+	for _, r := range username {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_' {
+			continue
+		}
+		return fmt.Errorf("username can only contain letters, numbers, and underscores")
+	}
+
+	return nil
+}
+
+func validatePassword(password string) error {
+	if len(password) < 8 {
+		return fmt.Errorf("password must be at least 8 characters")
+	} else if len(password) > MaxPasswordLength {
+		return fmt.Errorf("password is too long, max length is %d", MaxPasswordLength)
+	}
+
+	return nil
+}
+
 func (s *Server) createUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -35,8 +61,15 @@ func (s *Server) createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(req.Password) > MaxPasswordLength {
-		s.jsonError(w, http.StatusBadRequest, fmt.Sprintf("password is too long, max length is %d", MaxPasswordLength))
+	err = validateUsername(req.Username)
+	if err != nil {
+		s.jsonError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	err = validatePassword(req.Password)
+	if err != nil {
+		s.jsonError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -80,6 +113,18 @@ func (s *Server) loginUser(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(req)
 	if err != nil {
 		s.jsonError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	err = validateUsername(req.Username)
+	if err != nil {
+		s.jsonError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	err = validatePassword(req.Password)
+	if err != nil {
+		s.jsonError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 

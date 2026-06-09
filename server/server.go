@@ -9,8 +9,6 @@ import (
 	"os"
 
 	"github.com/OttoRoming/kolendar/db"
-	"github.com/OttoRoming/kolendar/templates"
-	"github.com/a-h/templ"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -117,8 +115,6 @@ func (s *Server) slogMiddleware(next http.Handler) http.Handler {
 
 func (s *Server) Run() error {
 	router := http.NewServeMux()
-
-	router.Handle("/", templ.Handler(templates.Login()))
 
 	router.HandleFunc("POST   /api/users/", s.createUser)
 	router.HandleFunc("POST   /api/users/login", s.loginUser)
