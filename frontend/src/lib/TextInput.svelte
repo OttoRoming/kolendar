@@ -1,9 +1,13 @@
 <script lang="ts">
-	let { label, value = $bindable() }: { label: string; value: string } = $props();
+	let {
+		label,
+		type = 'text',
+		value = $bindable()
+	}: { label: string; value: string; type: 'text' | 'email' | 'password' } = $props();
 </script>
 
 <input
-	type="text"
+	{type}
 	class="w-80 rounded-xl bg-black px-4 py-2"
 	bind:value
 	aria-label={label}

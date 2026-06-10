@@ -5,8 +5,9 @@
 	import Submit from '$lib/Submit.svelte';
 	import TextInput from '$lib/TextInput.svelte';
 	import { toast } from 'svelte-sonner';
-	import ky, { isHTTPError } from 'ky';
-	import { isHttpError } from '@sveltejs/kit';
+	import api from '$lib/api';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 
 	let signupValue = $state({
 		username: '',
@@ -29,29 +30,35 @@
 			return;
 		}
 
-		let post = ky
-			.post('/api/users/', {
-				json: {
-					username: signupValue.username,
-					password: signupValue.password
-				}
-			})
-			.json();
-
-		toast.promise(post, {
+		toast.promise(api.signup(signupValue), {
 			loading: 'Signing up...',
-			success: 'Signed up successfully!',
+			success: () => {
+				goto(resolve('/libraries'));
+				return 'Signed up successfully!';
+			},
 			error: (error) => {
-				if (
-					isHTTPError(error) &&
-					typeof error.data === 'object' &&
-					error.data !== null &&
-					'message' in error.data
-				) {
-					return error.data.message;
-				} else {
-					return 'An error occurred';
+				if (error instanceof Error) {
+					return error.message;
 				}
+				return 'An unknown error occurred';
+			}
+		});
+	}
+
+	function login(e: Event) {
+		e.preventDefault();
+
+		toast.promise(api.login(loginValue), {
+			loading: 'Logging in...',
+			success: () => {
+				goto(resolve('/libraries'));
+				return 'Signed up successfully!';
+			},
+			error: (error) => {
+				if (error instanceof Error) {
+					return error.message;
+				}
+				return 'An unknown error occurred';
 			}
 		});
 	}
@@ -61,15 +68,15 @@
 <div class="grid grid-cols-2 gap-16">
 	<form class={formClasses} onsubmit={signup}>
 		<H2>Sign Up</H2>
-		<TextInput label="Username" bind:value={signupValue.username} />
-		<TextInput label="Password" bind:value={signupValue.password} />
-		<TextInput label="Verify Password" bind:value={signupValue.verifyPassword} />
+		<TextInput type="text" label="Username" bind:value={signupValue.username} />
+		<TextInput type="password" label="Password" bind:value={signupValue.password} />
+		<TextInput type="password" label="Verify Password" bind:value={signupValue.verifyPassword} />
 		<Submit value="Register" />
 	</form>
-	<form class={formClasses}>
+	<form class={formClasses} onsubmit={login}>
 		<H2>Login</H2>
-		<TextInput label="Username" bind:value={loginValue.username} />
-		<TextInput label="Password" bind:value={loginValue.password} />
-		<Submit value="Register" />
+		<TextInput type="text" label="Username" bind:value={loginValue.username} />
+		<TextInput type="password" label="Password" bind:value={loginValue.password} />
+		<Submit value="Login" />
 	</form>
 </div>
