@@ -2,25 +2,10 @@ package server
 
 import (
 	"encoding/json"
-	"github.com/OttoRoming/kolendar/db"
 	"net/http"
+
+	"github.com/OttoRoming/kolendar/db"
 )
-
-func nameToPath(name string) string {
-	path := ""
-
-	for _, r := range name {
-		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') {
-			path += string(r)
-		} else if r == ' ' || r == '-' || r == '_' {
-			path += "-"
-		} else {
-			path += "_"
-		}
-	}
-
-	return path
-}
 
 type LibraryRequest struct {
 	Name string `json:"name"`
@@ -41,12 +26,9 @@ func (s *Server) createLibrary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	path := nameToPath(req.Name)
-
 	library, err := s.queries.CreateLibrary(ctx, db.CreateLibraryParams{
 		OwnerID: user.ID,
 		Name:    req.Name,
-		Path:    path,
 	})
 
 	s.jsonResponse(w, http.StatusCreated, library)

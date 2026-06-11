@@ -20,6 +20,5 @@ CREATE TABLE IF NOT EXISTS libraries (
     owner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     name TEXT NOT NULL,
-    path TEXT NOT NULL,
     UNIQUE(owner_id, name)
 );

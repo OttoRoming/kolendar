@@ -124,6 +124,8 @@ func (s *Server) Run() error {
 	router.HandleFunc("UPDATE /api/libraries/{id}/", s.updateLibrary)
 	router.HandleFunc("GET    /api/libraries/", s.getLibraries)
 
+	router.HandleFunc("POST   /api/libraries/", s.createLibrary)
+
 	address := os.Getenv("ADDRESS")
 	if address == "" {
 		address = "localhost:8080"
