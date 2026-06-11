@@ -73,6 +73,12 @@ func (s *Server) createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	_, err = s.queries.GetUserByUsername(ctx, req.Username)
+	if err == nil {
+		s.jsonError(w, http.StatusConflict, "username is already taken")
+		return
+	}
+
 	hashedPassword, err := argon2id.CreateHash(req.Password, argon2id.DefaultParams)
 	if err != nil {
 		s.jsonError(w, http.StatusInternalServerError, "failed to hash password")
@@ -93,9 +99,10 @@ func (s *Server) createUser(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     "token",
 		Value:    session.Token,
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
+		HttpOnly: IsProduction,
+		Secure:   IsProduction,
+		SameSite: http.SameSiteLaxMode,
+		Path:     "/",
 		Expires:  session.ExpiresAt.Time.UTC(),
 	})
 
@@ -130,13 +137,13 @@ func (s *Server) loginUser(w http.ResponseWriter, r *http.Request) {
 
 	user, err := s.queries.GetUserByUsername(ctx, req.Username)
 	if err != nil {
-		s.jsonError(w, http.StatusUnauthorized, "invalid username or password")
+		s.jsonError(w, http.StatusBadRequest, "invalid username or password")
 		return
 	}
 
 	match, err := argon2id.ComparePasswordAndHash(req.Password, user.Password)
 	if err != nil || !match {
-		s.jsonError(w, http.StatusUnauthorized, "invalid username or password")
+		s.jsonError(w, http.StatusBadRequest, "invalid username or password")
 		return
 	}
 
@@ -149,9 +156,10 @@ func (s *Server) loginUser(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     "token",
 		Value:    session.Token,
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
+		HttpOnly: IsProduction,
+		Secure:   IsProduction,
+		SameSite: http.SameSiteLaxMode,
+		Path:     "/",
 		Expires:  session.ExpiresAt.Time.UTC(),
 	})
 

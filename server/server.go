@@ -23,6 +23,10 @@ type DeleteResponse struct {
 	RowsAffected int64 `json:"rows_affected"`
 }
 
+const (
+	IsProduction = false
+)
+
 func NewServer(schema string) (*Server, error) {
 	ctx := context.Background()
 
@@ -69,7 +73,7 @@ func (s *Server) jsonError(w http.ResponseWriter, status int, message string) {
 		Message string `json:"message"`
 	}
 
-	s.jsonResponse(w, status, ErrorResponse{
+	s.jsonResponse(w, status, &ErrorResponse{
 		Message: message,
 	})
 }
@@ -124,7 +128,7 @@ func (s *Server) Run() error {
 	router.HandleFunc("UPDATE /api/libraries/{id}/", s.updateLibrary)
 	router.HandleFunc("GET    /api/libraries/", s.getLibraries)
 
-	router.HandleFunc("POST   /api/libraries/", s.createLibrary)
+	router.HandleFunc("POST   /api/libraries/{id}/", s.createLibrary)
 
 	address := os.Getenv("ADDRESS")
 	if address == "" {

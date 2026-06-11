@@ -12,11 +12,12 @@ export class AuthError extends Error {
 	}
 }
 
-async function post<T>(url: string, body: any): Promise<T> {
+async function post<T>(url: string, body: unknown): Promise<T> {
 	let response: Response;
 	try {
 		response = await fetch(url, {
 			method: 'POST',
+			credentials: 'same-origin',
 			headers: {
 				'Content-Type': 'application/json'
 			},

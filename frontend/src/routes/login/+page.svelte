@@ -52,7 +52,7 @@
 			loading: 'Logging in...',
 			success: () => {
 				goto(resolve('/libraries'));
-				return 'Signed up successfully!';
+				return 'Logged in successfully!';
 			},
 			error: (error) => {
 				if (error instanceof Error) {

@@ -17,6 +17,7 @@ func (s *Server) createLibrary(w http.ResponseWriter, r *http.Request) {
 	user, err := s.authenticateRequest(r)
 	if err != nil {
 		s.jsonError(w, http.StatusUnauthorized, "Unauthorized")
+		return
 	}
 
 	var req LibraryRequest
@@ -30,6 +31,16 @@ func (s *Server) createLibrary(w http.ResponseWriter, r *http.Request) {
 		OwnerID: user.ID,
 		Name:    req.Name,
 	})
+	if err != nil {
+		s.jsonError(w, http.StatusInternalServerError, "Failed to create library")
+		return
+	}
+
+	err = s.createLibraryFS(library.ID)
+	if err != nil {
+		s.jsonError(w, http.StatusInternalServerError, "Failed to create library directory")
+		return
+	}
 
 	s.jsonResponse(w, http.StatusCreated, library)
 }
@@ -40,11 +51,13 @@ func (s *Server) deleteLibrary(w http.ResponseWriter, r *http.Request) {
 	user, err := s.authenticateRequest(r)
 	if err != nil {
 		s.jsonError(w, http.StatusUnauthorized, "Unauthorized")
+		return
 	}
 
 	id, err := s.pathValueUUID(r, "id")
 	if err != nil {
 		s.jsonError(w, http.StatusBadRequest, "Invalid library ID")
+		return
 	}
 
 	rowsAffected, err := s.queries.DeleteLibrarySecure(ctx, db.DeleteLibrarySecureParams{
@@ -60,6 +73,12 @@ func (s *Server) deleteLibrary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err = s.deleteLibraryFS(id)
+	if err != nil {
+		s.jsonError(w, http.StatusInternalServerError, "Failed to delete library directory")
+		return
+	}
+
 	s.jsonResponse(w, http.StatusOK, DeleteResponse{
 		RowsAffected: rowsAffected,
 	})
@@ -71,11 +90,13 @@ func (s *Server) updateLibrary(w http.ResponseWriter, r *http.Request) {
 	user, err := s.authenticateRequest(r)
 	if err != nil {
 		s.jsonError(w, http.StatusUnauthorized, "Unauthorized")
+		return
 	}
 
 	id, err := s.pathValueUUID(r, "id")
 	if err != nil {
 		s.jsonError(w, http.StatusBadRequest, "Invalid library ID")
+		return
 	}
 
 	var req LibraryRequest
@@ -104,6 +125,7 @@ func (s *Server) getLibraries(w http.ResponseWriter, r *http.Request) {
 	user, err := s.authenticateRequest(r)
 	if err != nil {
 		s.jsonError(w, http.StatusUnauthorized, "Unauthorized")
+		return
 	}
 
 	libraries, err := s.queries.GetLibrariesByOwnerID(ctx, user.ID)
