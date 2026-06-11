@@ -85,13 +85,10 @@ func (s *Server) updateLibrary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	path := nameToPath(req.Name)
-
 	library, err := s.queries.UpdateLibrarySecure(ctx, db.UpdateLibrarySecureParams{
 		ID:      id,
 		OwnerID: user.ID,
 		Name:    req.Name,
-		Path:    path,
 	})
 	if err != nil {
 		s.jsonError(w, http.StatusInternalServerError, "Failed to update library")
