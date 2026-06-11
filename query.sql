@@ -28,9 +28,9 @@ SELECT * FROM sessions WHERE token = $1;
 
 -- name: CreateLibrary :one
 INSERT INTO libraries (
-    owner_id, name, path
+    owner_id, name
 ) VALUES (
-    $1, $2, $3
+    $1, $2
 ) RETURNING *;
 
 -- name: GetLibrariesByOwnerID :many
@@ -42,6 +42,6 @@ WHERE id = $1 AND owner_id = $2;
 
 -- name: UpdateLibrarySecure :one
 UPDATE libraries
-SET name = $2, path = $3
-WHERE id = $1 AND owner_id = $4
+SET name = $2
+WHERE id = $1 AND owner_id = $3
 RETURNING *;
